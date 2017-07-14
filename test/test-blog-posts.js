@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const should = chai.should();
 
 const {DATABASE_URL} = require('../config');
-const {BlogPost} = require('../models');
+const {BlogPost, User} = require('../models');
 const {closeServer, runServer, app} = require('../server');
 const {TEST_DATABASE_URL} = require('../config');
 
@@ -96,7 +96,7 @@ describe('blog posts API resource', function() {
         .then(count => {
           // the number of returned posts should be same
           // as number of posts in DB
-          res.body.should.have.length.of(count);
+          res.body.should.have.lengthOf(count);
         });
     });
 
@@ -146,8 +146,21 @@ describe('blog posts API resource', function() {
           content: faker.lorem.text()
       };
 
+
+      // User.hashPassword('test-password')
+      //   .then(hash => console.log('THIS IS THE HASH', hash));
+
       return chai.request(app)
         .post('/posts')
+        .then(
+          User.create({
+            username: faker.internet.userName(),
+            password: User.hashPassword('letmein'),
+            firstName: faker.name.firstName(),
+            lastName: faker.name.lastName()
+          })
+        )
+        .auth('username', 'password')
         .send(newPost)
         .then(function(res) {
           res.should.have.status(201);

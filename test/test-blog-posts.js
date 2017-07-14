@@ -47,8 +47,8 @@ function seedData() {
   for (let i=1; i<=10; i++) {
     seedData.push({
       author: {
-        firstName: faker.name.firstName(),
-        lastName: faker.name.lastName()
+        firstName: fakeUser.firstName,
+        lastName: fakeUser.lastName
       },
       title: faker.lorem.sentence(),
       content: faker.lorem.text()
@@ -143,21 +143,13 @@ describe('blog posts API resource', function() {
     });
   });
 
-  describe.only('POST endpoint', function() {
-    // strategy: make a POST request with data,
-    // then prove that the post we get back has
-    // right keys, and that `id` is there (which means
-    // the data was inserted into db)
+  describe('POST endpoint', function() {
     it('should add a new blog post', function() {
 
       const newPost = {
           title: faker.lorem.sentence(),
           content: faker.lorem.text()
       };
-
-
-      // User.hashPassword('test-password')
-      //   .then(hash => console.log('THIS IS THE HASH', hash));
 
       return chai.request(app)
         .post('/posts')
@@ -170,7 +162,6 @@ describe('blog posts API resource', function() {
           res.body.should.include.keys(
             'id', 'title', 'content', 'author', 'created');
           res.body.title.should.equal(newPost.title);
-          // cause Mongo should have created id on insertion
           res.body.id.should.not.be.null;
           res.body.author.should.equal(`${fakeUser.firstName} ${fakeUser.lastName}`);
           res.body.content.should.equal(newPost.content);
@@ -185,7 +176,7 @@ describe('blog posts API resource', function() {
     });
   });
 
-  describe('PUT endpoint', function() {
+  describe.only('PUT endpoint', function() {
 
     // strategy:
     //  1. Get an existing post from db
@@ -194,11 +185,11 @@ describe('blog posts API resource', function() {
     //  4. Prove post in db is correctly updated
     it('should update fields you send over', function() {
       const updateData = {
-        title: 'cats cats cats',
-        content: 'dogs dogs dogs',
+        title: faker.lorem.sentences(),
+        content: faker.lorem.sentences(),
         author: {
-          firstName: 'foo',
-          lastName: 'bar'
+          firstName: fakeUser.firstName,
+          lastName: fakeUser.lastName
         }
       };
 
@@ -210,6 +201,7 @@ describe('blog posts API resource', function() {
 
           return chai.request(app)
             .put(`/posts/${post.id}`)
+            .auth('hellokitty', 'meow')
             .send(updateData);
         })
         .then(res => {
@@ -218,7 +210,7 @@ describe('blog posts API resource', function() {
           res.body.should.be.a('object');
           res.body.title.should.equal(updateData.title);
           res.body.author.should.equal(
-            `${updateData.author.firstName} ${updateData.author.lastName}`);
+            `${fakeUser.firstName} ${fakeUser.lastName}`);
           res.body.content.should.equal(updateData.content);
 
           return BlogPost.findById(res.body.id).exec();
@@ -226,8 +218,8 @@ describe('blog posts API resource', function() {
         .then(post => {
           post.title.should.equal(updateData.title);
           post.content.should.equal(updateData.content);
-          post.author.firstName.should.equal(updateData.author.firstName);
-          post.author.lastName.should.equal(updateData.author.lastName);
+          post.author.firstName.should.equal(fakeUser.firstName);
+          post.author.lastName.should.equal(fakeUser.lastName);
         });
     });
   });

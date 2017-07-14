@@ -33,7 +33,15 @@ function tearDownDb() {
 // we use the Faker library to automatically
 // generate placeholder values for author, title, content
 // and then we insert that data into mongo
-function seedBlogPostData() {
+
+
+const fakeUser = {
+  username: "hellokitty",
+  password: "$2a$10$Q.IypFjSlIpsEdQt2IIMMeoYCmP6s/uwQjw0SGo.Kchq5dTBQ9d9W",
+  firstName: faker.name.firstName(),
+  lastName: faker.name.lastName()
+}
+function seedData() {
   console.info('seeding blog post data');
   const seedData = [];
   for (let i=1; i<=10; i++) {
@@ -46,9 +54,14 @@ function seedBlogPostData() {
       content: faker.lorem.text()
     });
   }
+  const myPostPromise = BlogPost.insertMany(seedData)
+
+  const myUserPromise = User.create(fakeUser);
   // this will return a promise
-  return BlogPost.insertMany(seedData);
+  return Promise.all([myPostPromise, myUserPromise]);
 }
+
+
 
 
 describe('blog posts API resource', function() {
@@ -58,7 +71,7 @@ describe('blog posts API resource', function() {
   });
 
   beforeEach(function() {
-    return seedBlogPostData();
+    return seedData();
   });
 
   afterEach(function() {
@@ -130,7 +143,7 @@ describe('blog posts API resource', function() {
     });
   });
 
-  describe('POST endpoint', function() {
+  describe.only('POST endpoint', function() {
     // strategy: make a POST request with data,
     // then prove that the post we get back has
     // right keys, and that `id` is there (which means
@@ -139,10 +152,6 @@ describe('blog posts API resource', function() {
 
       const newPost = {
           title: faker.lorem.sentence(),
-          author: {
-            firstName: faker.name.firstName(),
-            lastName: faker.name.lastName(),
-          },
           content: faker.lorem.text()
       };
 
@@ -152,15 +161,7 @@ describe('blog posts API resource', function() {
 
       return chai.request(app)
         .post('/posts')
-        .then(
-          User.create({
-            username: faker.internet.userName(),
-            password: User.hashPassword('letmein'),
-            firstName: faker.name.firstName(),
-            lastName: faker.name.lastName()
-          })
-        )
-        .auth('username', 'password')
+        .auth('hellokitty', 'meow')
         .send(newPost)
         .then(function(res) {
           res.should.have.status(201);
@@ -171,16 +172,15 @@ describe('blog posts API resource', function() {
           res.body.title.should.equal(newPost.title);
           // cause Mongo should have created id on insertion
           res.body.id.should.not.be.null;
-          res.body.author.should.equal(
-            `${newPost.author.firstName} ${newPost.author.lastName}`);
+          res.body.author.should.equal(`${fakeUser.firstName} ${fakeUser.lastName}`);
           res.body.content.should.equal(newPost.content);
           return BlogPost.findById(res.body.id).exec();
         })
         .then(function(post) {
           post.title.should.equal(newPost.title);
           post.content.should.equal(newPost.content);
-          post.author.firstName.should.equal(newPost.author.firstName);
-          post.author.lastName.should.equal(newPost.author.lastName);
+          post.author.firstName.should.equal(fakeUser.firstName);
+          post.author.lastName.should.equal(fakeUser.lastName);
         });
     });
   });
